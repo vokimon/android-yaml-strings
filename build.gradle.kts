@@ -27,8 +27,7 @@ dependencies {
 }
 
 gradlePlugin {
-    // Public publish
-    // ./gradlew publishPlugins
+    // Public publish: ./gradlew publishPlugins
     // Define envs GRADLE_PUBLISH_KEY and GRADLE_PUBLISH_SECRET
     plugins {
         create(pluginName) {

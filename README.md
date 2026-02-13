@@ -30,7 +30,7 @@ Enable those repositories in settings.gradle.kts:
 ```kotlin
 pluginManagement {
     repositories {
-        mavenLocal()
+        mavenLocal() # If you install it locally
         gradlePluginPortal()
         google()
         mavenCentral()
@@ -105,6 +105,20 @@ bracestring: {{this curly brace is not a parameter}}
 Parameters also can have format specs `{name:formatspec}`.
 Just the same space you would use in `strings.xml`
 
+### Language enumeration
+
+The string array resource with id `supported_language_codes`
+contains a list of all the translated languages.
+
+## Inner behaviour
+
+The plugin generates intermediate `<srcSet>/res/value-<lang>/string.xml` in `build/`.
+It also genereates a resource file
+`<srcSet>/res/values/arrays_languages.xml`
+containing the language codes of all the translations
+with string array id of `supported_language_codes`
+so that you can enumerate them.
+
 ## Development
 
 ```bash
@@ -114,7 +128,7 @@ Just the same space you would use in `strings.xml`
 # Install in local
 ./gradlew publishToMavenLocal
 
-# Install in plugins.gradle.org
+# Publish in plugins.gradle.org
 export GRADLE_PUBLISH_KEY=xxxxxxxxxxxxxxxxxxxxxxxxx
 export GRADLE_PUBLISH_SECRET=zzzzzzzzzzzzzzzzzzzzzzzzzzzz
 ./gradlew publish
