@@ -4,10 +4,13 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
+import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputDirectory
 import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.OutputDirectory
+import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
@@ -107,35 +110,74 @@ fun parameterOrderFromYaml(yamlFile: File): ParamCatalog {
     return result
 }
 
-open class YamlToAndroidStringsTask : DefaultTask() {
-    @InputDirectory
-    var yamlDir: File = project.projectDir.resolve("src/main/translations")
+abstract class YamlToAndroidStringsTask : DefaultTask() {
 
-    @OutputDirectory
-    var resDir: File = project.projectDir.resolve("src/main/res")
+    @get:InputDirectory
+    @get:Optional
+    abstract val yamlDir: DirectoryProperty
 
-    @Input
-    var defaultLanguage: String = "en"
+    @get:OutputDirectory
+    abstract val resDir: DirectoryProperty
 
-    @get:InputFiles
-    @get:PathSensitive(PathSensitivity.RELATIVE)
-    protected val yamlInputFiles: Set<File>
-        get() =
-            yamlDir
-                .listFiles { file ->
-                    file.extension.lowercase(Locale.ROOT) in listOf("yml", "yaml")
-                }?.toSet() ?: emptySet()
+    @get:Input
+    abstract val defaultLanguage: Property<String>
 
     private val errors = mutableListOf<String>()
 
-    private fun validateResourceName(name: String): String {
-        if (!name.matches(Regex("^[a-z][a-z0-9_]*$"))) {
+    @TaskAction
+    fun run() {
+        val yamlDirectory = yamlDir.orNull?.asFile
+        logger.lifecycle("Processing ${yamlDirectory?.absolutePath}")
+        if (yamlDirectory == null || !yamlDirectory.exists()) {
+            logger.lifecycle("Translations directory not found: ${yamlDirectory?.absolutePath}")
+            return
+        }
+        logger.lifecycle("Translations directory found: ${yamlDirectory.absolutePath}")
+
+        val yamlInputFiles = yamlDirectory
+            .listFiles { file ->
+                file.extension.lowercase(Locale.ROOT) in listOf("yml", "yaml")
+            }?.toSet() ?: emptySet()
+
+        if (yamlInputFiles.isEmpty()) return
+
+        val languageCodes = yamlInputFiles
+            .map { it.nameWithoutExtension.lowercase(Locale.ROOT) }
+            .toSortedSet()
+
+        val defaultLang = defaultLanguage.get()
+
+        if (defaultLang !in languageCodes) {
             throw GradleException(
-                "Invalid resource name '$name'. Android resource names must start with a lowercase letter " +
-                    "and contain only lowercase letters, digits, and underscores.",
+                "Default language '$defaultLang' not found. Available: ${languageCodes.joinToString(", ")}"
             )
         }
-        return name
+
+        val outputResDir = resDir.get().asFile
+
+        writeArraysFile(outputResDir, languageCodes)
+
+        val paramCatalog =
+            parameterOrderFromYaml(
+                yamlInputFiles.first { it.nameWithoutExtension.lowercase() == defaultLang }
+            )
+
+        languageCodes.forEach { langCode ->
+            val file =
+                yamlInputFiles.first {
+                    it.nameWithoutExtension.lowercase(Locale.ROOT) == langCode
+                }
+
+            val qualifier =
+                if (langCode == defaultLang || langCode == "default") "values"
+                else "values-$langCode"
+
+            val targetDir = File(outputResDir, qualifier)
+            targetDir.mkdirs()
+
+            val xmlFile = File(targetDir, "strings.xml")
+            convertYamlToAndroidXml(file, xmlFile, paramCatalog)
+        }
     }
 
     private fun writeArraysFile(
@@ -160,54 +202,6 @@ open class YamlToAndroidStringsTask : DefaultTask() {
             },
         )
         println("Generated language arrays: ${languageCodes.joinToString(", ")}")
-    }
-
-    private fun getLanguageCodes(): SortedSet<String> =
-        yamlInputFiles
-            .map { it.nameWithoutExtension.lowercase(Locale.ROOT) }
-            .toSortedSet()
-
-    private fun yamlForLanguage(
-        langCode: String, // Remove yamlDir parameter
-    ): File {
-        // Use the actual files we discovered, not guess filenames
-        return yamlInputFiles.firstOrNull {
-            it.nameWithoutExtension.lowercase(Locale.ROOT) == langCode
-        } ?: throw GradleException("Language file for '$langCode' not found in input files")
-    }
-
-    @TaskAction
-    fun run() {
-        if (!yamlDir.exists()) {
-            println("Translations directory not found: ${yamlDir.absolutePath}")
-            return
-        }
-
-        val paramCatalog = parameterOrderFromYaml(yamlForLanguage(defaultLanguage))
-        val languageCodes = getLanguageCodes()
-        if (defaultLanguage !in languageCodes) {
-            throw GradleException(
-                "Default language '$defaultLanguage' not found in translation files. " +
-                    "Available: ${languageCodes.joinToString(", ")}",
-            )
-        }
-        writeArraysFile(resDir, languageCodes)
-        languageCodes.forEach { langCode ->
-            val file = yamlForLanguage(langCode)
-
-            if (!file.exists()) return@forEach
-
-            val qualifier = if (langCode == defaultLanguage || langCode == "default") "values" else "values-$langCode"
-            val targetDir = File(resDir, qualifier)
-            targetDir.mkdirs()
-
-            val xmlFile = File(targetDir, "strings.xml")
-            convertYamlToAndroidXml(file, xmlFile, paramCatalog)
-            println("Generated: ${xmlFile.absolutePath}")
-        }
-        if (errors.isNotEmpty()) {
-            throw GradleException("Errors found:\n${errors.joinToString("\n")}")
-        }
     }
 
     private fun convertYamlToAndroidXml(
@@ -275,4 +269,15 @@ open class YamlToAndroidStringsTask : DefaultTask() {
 
         transformer.transform(DOMSource(doc), StreamResult(xmlFile))
     }
+
+    private fun validateResourceName(name: String): String {
+        if (!name.matches(Regex("^[a-z][a-z0-9_]*$"))) {
+            throw GradleException(
+                "Invalid resource name '$name'. Android resource names must start with a lowercase letter " +
+                    "and contain only lowercase letters, digits, and underscores.",
+            )
+        }
+        return name
+    }
+
 }
