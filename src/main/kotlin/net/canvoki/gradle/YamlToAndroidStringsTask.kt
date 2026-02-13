@@ -162,7 +162,7 @@ open class YamlToAndroidStringsTask : DefaultTask() {
         println("Generated language arrays: ${languageCodes.joinToString(", ")}")
     }
 
-    fun getLanguageCodes(): SortedSet<String> =
+    private fun getLanguageCodes(): SortedSet<String> =
         yamlInputFiles
             .map { it.nameWithoutExtension.lowercase(Locale.ROOT) }
             .toSortedSet()
