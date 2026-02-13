@@ -28,7 +28,6 @@ replay_pid*
 
 # Gradle
 .gradle/
-gradle/wrapper/gradle-wrapper.jar
 
 # Build outputs
 build/
