@@ -33,3 +33,6 @@ gradle/wrapper/gradle-wrapper.jar
 # Build outputs
 build/
 
+# local/secret config
+.env
+

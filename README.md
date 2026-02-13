@@ -9,12 +9,49 @@ into `string.xml` resource files.
 
 ## Usage
 
-Every `app/src/main/translations/<code>.yaml` file is turned in to 
-`app/src/main/res/<code>/strings.xml`.
+Place you yaml translation files in `<module>/src/<sourceSet>/translations/<langcode>.yaml`.
+Those files contains maps of ids to the translated string in `langcode`.
 
 ```yaml
 myid: This is a translation
 otherid: Translate me
+multiline: |>
+   This content is divided
+   in multiple lines.
+```
+
+Then you can refer those strings in your code as:
+`com.mydomain.myapp.R.myid`,
+just like ids in `strings.xml` files.
+
+### Configuration
+
+In gradle.settings.
+
+
+In your project `build.gradle` add:
+
+```groovie
+plugins {
+    id 'net.canvoki.android-yaml-strings' version '1.0.0'
+}
+
+# Optional, just add it if 'en' is not you reference language
+yamlToAndroidStrings {
+    defaultLanguage = "en"
+}
+```
+or in `build.gradle.kts`:
+
+```kts
+plugins {
+    id("net.canvoki.android-yaml-strings") version "1.0.0"
+}
+
+# Optional, just add it if 'en' is not you reference language
+yamlToAndroidStrings {
+    defaultLanguage.set("en")
+}
 ```
 
 ### Hierarchy
@@ -31,16 +68,38 @@ Renders into `parent__child` id.
 
 ### Named parameters
 
-Android strings may have only indexed parameters.
-In yaml strings you can use `{parameternames}`, which is more flexible and less error prone.
-Names will relate to indexes as their position in the reference language.
-They are checked and translated to indexes in build time.
+Android strings can only have indexed parameters to interpolate in the string.
+This plugin adds the ability to use named parameters in the translated strings,
+like `"Hello {user}! Welcome to {appname}"`
+This eases the translation task by better identify the meaning of the parameters
+and change the order if the language asks for it.
 
-You can also add formatting directives `{name:formatspec}`.
+Sadly, in code we are still limited to positional parameters,
+so the order of the named parameters in the reference language sets the indexes to be used in the code.
+Proper name correspondence are checked in compile time.
 
-## Maintain
+Edge cases:
 
+- Curly braces in yaml are meaningfull, if the string starts with a parameter, you have to double quote it
+
+```yaml
+nloaded: "{n} items loaded" # prevent parsing it as inline map
+nloaded2: You have 
+```
+
+- If you want a real curly brace in the string you have to double it.
+
+```yaml
+bracestring: {{this curly brace is not a parameter}}
+```
+
+Parameters also can have format specs `{name:formatspec}`.
+Just the same space you would use in `strings.xml`
+
+## Maintain the plugin
+
+```bash
 ./gradlew test
 ./gradlew publishToMavenLocal
-
+```
 
