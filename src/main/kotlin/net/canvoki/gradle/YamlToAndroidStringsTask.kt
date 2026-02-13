@@ -112,9 +112,10 @@ fun parameterOrderFromYaml(yamlFile: File): ParamCatalog {
 
 abstract class YamlToAndroidStringsTask : DefaultTask() {
 
-    @get:InputDirectory
+    @get:InputFiles
+    @get:PathSensitive(PathSensitivity.RELATIVE)
     @get:Optional
-    abstract val yamlDir: DirectoryProperty
+    abstract val yamlInputFiles: org.gradle.api.file.ConfigurableFileCollection
 
     @get:OutputDirectory
     abstract val resDir: DirectoryProperty
@@ -126,20 +127,9 @@ abstract class YamlToAndroidStringsTask : DefaultTask() {
 
     @TaskAction
     fun run() {
-        val yamlDirectory = yamlDir.orNull?.asFile
-        logger.lifecycle("Processing ${yamlDirectory?.absolutePath}")
-        if (yamlDirectory == null || !yamlDirectory.exists()) {
-            logger.lifecycle("Translations directory not found: ${yamlDirectory?.absolutePath}")
-            return
-        }
-        logger.lifecycle("Translations directory found: ${yamlDirectory.absolutePath}")
-
-        val yamlInputFiles = yamlDirectory
-            .listFiles { file ->
-                file.extension.lowercase(Locale.ROOT) in listOf("yml", "yaml")
-            }?.toSet() ?: emptySet()
-
         if (yamlInputFiles.isEmpty()) return
+
+        logger.lifecycle("Translations directory found: ${yamlInputFiles}")
 
         val languageCodes = yamlInputFiles
             .map { it.nameWithoutExtension.lowercase(Locale.ROOT) }

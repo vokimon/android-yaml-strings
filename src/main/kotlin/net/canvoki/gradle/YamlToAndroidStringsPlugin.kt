@@ -1,27 +1,12 @@
 package net.canvoki.gradle
 
+import com.android.build.api.dsl.ApplicationExtension
+import com.android.build.api.dsl.LibraryExtension
+import com.android.build.api.dsl.AndroidSourceSet
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.DefaultTask
-import org.gradle.api.tasks.InputDirectory
-import org.gradle.api.tasks.OutputDirectory
-import org.gradle.api.tasks.Input
-import org.gradle.api.tasks.TaskAction
-import org.gradle.api.tasks.PathSensitive
-import org.gradle.api.tasks.PathSensitivity
-import org.gradle.api.GradleException
-import java.io.File
-import java.util.Locale
-import com.android.build.api.variant.AndroidComponentsExtension
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
-import javax.xml.parsers.DocumentBuilderFactory
-import javax.xml.transform.TransformerFactory
-import javax.xml.transform.OutputKeys
-import javax.xml.transform.dom.DOMSource
-import javax.xml.transform.stream.StreamResult
-
-import org.w3c.dom.Element
+import org.gradle.kotlin.dsl.getByType
+import org.gradle.kotlin.dsl.register
 
 /**
  * Plugin configuration
@@ -36,36 +21,62 @@ open class YamlToAndroidStringsExtension {
 class YamlToAndroidStringsPlugin : Plugin<Project> {
 
     override fun apply(project: Project) {
+
         val extension = project.extensions.create(
             "yamlStrings",
             YamlToAndroidStringsExtension::class.java
         )
-        val srcDir = File(project.projectDir, "src")
-        srcDir.listFiles()?.filter { it.isDirectory }?.forEach { sourceSetDir ->
 
-            val translationsDir = File(sourceSetDir, "translations")
-            if (!translationsDir.exists()) return@forEach
+        project.plugins.withId("com.android.application") {
+            val android =
+                project.extensions.getByType<ApplicationExtension>()
+            configure(project, android.sourceSets, extension)
+        }
 
-            val outputDir = File(sourceSetDir, "/res")
-            // TODO: To build dir, requires adding as sourceSet to be processed
-            //val outputDir = project.layout.buildDirectory.dir("generated/yaml-strings/${sourceSetDir.name}/res")
+        project.plugins.withId("com.android.library") {
+            val android =
+                project.extensions.getByType<LibraryExtension>()
+            configure(project, android.sourceSets, extension)
+        }
+    }
 
-            val sourceSetInfix = sourceSetDir.name.replaceFirstChar { it.uppercase() }
+    private fun configure(
+        project: Project,
+        sourceSets: Iterable<AndroidSourceSet>,
+        extension: YamlToAndroidStringsExtension
+    ) {
+
+        sourceSets.forEach { sourceSet ->
+
+            val translationsDir = project.layout.projectDirectory
+                .dir("src/${sourceSet.name}/translations")
+
+            val sourceSetInfix =
+                sourceSet.name.replaceFirstChar { it.uppercase() }
+
+            val outputDir = project.layout.buildDirectory
+                .dir("generated/translations/${sourceSet.name}/res")
+
             val taskProvider = project.tasks.register(
                 "generate${sourceSetInfix}YamlToAndroidStrings",
                 YamlToAndroidStringsTask::class.java
             ) {
-                yamlDir.set(translationsDir)
+                yamlInputFiles.from(
+                    project.fileTree(translationsDir) {
+                        include("**/*.yml", "**/*.yaml")
+                    }
+                )
                 resDir.set(outputDir)
                 defaultLanguage.set(extension.defaultLanguage)
             }
-            project.plugins.withId("com.android.application") {
-                project.tasks.named("preBuild").configure { dependsOn(taskProvider) }
-            }
-            project.plugins.withId("com.android.library") {
-                project.tasks.named("preBuild").configure { dependsOn(taskProvider) }
+
+            // Add the generated files as resources
+            sourceSet.res.srcDir(outputDir)
+
+            // Link to dependencies
+            project.tasks.named("preBuild").configure {
+                dependsOn(taskProvider)
             }
         }
     }
 }
-
