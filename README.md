@@ -26,8 +26,17 @@ just like ids in `strings.xml` files.
 
 ### Configuration
 
-In gradle.settings.
-
+Enable those repositories in settings.gradle.kts:
+```kotlin
+pluginManagement {
+    repositories {
+        mavenLocal()
+        gradlePluginPortal()
+        google()
+        mavenCentral()
+    }
+}
+```
 
 In your project `build.gradle` add:
 
@@ -54,17 +63,17 @@ yamlToAndroidStrings {
 }
 ```
 
-### Hierarchy
+### Sections
 
-If your yaml has a hierarchy,
-xml ids are constructed by joining the levels with a double underscore.
+You can setup sections in your yaml.
+XML ids are constructed by joining the levels with a double underscore.
 
 ```yaml
-parent:
+section:
   child: My string
 ```
 
-Renders into `parent__child` id.
+Renders into `section__child` id.
 
 ### Named parameters
 
@@ -96,10 +105,18 @@ bracestring: {{this curly brace is not a parameter}}
 Parameters also can have format specs `{name:formatspec}`.
 Just the same space you would use in `strings.xml`
 
-## Maintain the plugin
+## Development
 
 ```bash
+# Pass tests
 ./gradlew test
+
+# Install in local
 ./gradlew publishToMavenLocal
+
+# Install in plugins.gradle.org
+export GRADLE_PUBLISH_KEY=xxxxxxxxxxxxxxxxxxxxxxxxx
+export GRADLE_PUBLISH_SECRET=zzzzzzzzzzzzzzzzzzzzzzzzzzzz
+./gradlew publish
 ```
 
