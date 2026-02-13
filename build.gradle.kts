@@ -1,9 +1,12 @@
 plugins {
     `kotlin-dsl`
     `maven-publish`
+    id("com.gradle.plugin-publish") version "2.0.0"
 }
+
 group = property("GROUP") as String
 version = property("VERSION") as String
+
 val pluginName: String = property("PLUGIN_NAME") as String
 val artifactId: String = property("ARTIFACT_ID") as String
 val githubUser: String = property("GITHUB_USER") as String
@@ -24,13 +27,22 @@ dependencies {
 }
 
 gradlePlugin {
+    // Public publish
+    // ./gradlew publishPlugins
+    // Define envs GRADLE_PUBLISH_KEY and GRADLE_PUBLISH_SECRET
     plugins {
         create(pluginName) {
-            id = "${group}.${artifactId}"
+            id = "$group.$artifactId"
             implementationClass = "$group.${pluginName}Plugin"
+            displayName = "Android YAML Strings Plugin"
+            description = "Generates Android strings.xml files from YAML translation files."
+            website = "https://github.com/$githubUser/$artifactId"
+            vcsUrl = "https://github.com/$githubUser/$artifactId"
+            tags = listOf("android", "yaml", "strings", "translations")
         }
     }
 }
+
 
 tasks.withType<Test> {
     testLogging {
@@ -43,22 +55,9 @@ tasks.withType<Test> {
     }
 }
 
+
 publishing {
     repositories {
         mavenLocal() // For local testing ./gradlew publishToMavenLocal
-        // Public publishing, ./gradlew publish
-        maven {
-            name = "GitHubPackages"
-            url = uri(
-                "https://maven.pkg.github.com/" +
-                        "${githubUser}/" +
-                        "${rootProject.name}"
-            )
-            credentials {
-                username = "$githubUser"
-                password = System.getenv("GITHUB_TOKEN")
-            }
-        }
     }
 }
-
