@@ -30,7 +30,7 @@ Enable those repositories in settings.gradle.kts:
 ```kotlin
 pluginManagement {
     repositories {
-        mavenLocal() # If you install it locally
+        mavenLocal() // If you install it locally
         gradlePluginPortal()
         google()
         mavenCentral()
@@ -45,7 +45,7 @@ plugins {
     id 'net.canvoki.android-yaml-strings' version '1.0.0'
 }
 
-# Optional, just add it if 'en' is not you reference language
+// Optional, just add it if 'en' is not you reference language
 yamlToAndroidStrings {
     defaultLanguage = "en"
 }
@@ -57,7 +57,7 @@ plugins {
     id("net.canvoki.android-yaml-strings") version "1.0.0"
 }
 
-# Optional, just add it if 'en' is not you reference language
+// Optional, just add it if 'en' is not you reference language
 yamlToAndroidStrings {
     defaultLanguage.set("en")
 }
