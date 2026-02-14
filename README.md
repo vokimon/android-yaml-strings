@@ -87,13 +87,13 @@ Sadly, in code we are still limited to positional parameters,
 so the order of the named parameters in the reference language sets the indexes to be used in the code.
 Proper name correspondence are checked in compile time.
 
-Edge cases:
+Named parameters have som friction with YAML:
 
 - Curly braces in yaml are meaningfull, if the string starts with a parameter, you have to double quote it
 
 ```yaml
 nloaded: "{n} items loaded" # prevent parsing it as inline map
-nloaded2: You have 
+nloaded2: You have {n} items # No need to quote when not in the begining
 ```
 
 - If you want a real curly brace in the string you have to double it.
