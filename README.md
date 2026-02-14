@@ -1,4 +1,4 @@
-roid-yaml-strings
+# android-yaml-strings
 
 A Gradle plugin to maintain Android translation strings in YAML files.
 
