@@ -17,7 +17,8 @@ It also includes additional features such as:
 ## Usage
 
 Place your YAML translation files in:
-`<module>/src/<sourceSet>/translations/<langcode>.yaml`.
+
+    <module>/src/<sourceSet>/translations/<langcode>.yaml
 
 These files contain mappings from string IDs to their translations in the given language (`langcode`):
 
