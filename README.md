@@ -99,7 +99,7 @@ nloaded2: You have {n} items # No need to quote when not in the begining
 - If you want a real curly brace in the string you have to double it.
 
 ```yaml
-bracestring: {{this curly brace is not a parameter}}
+bracestring: this {{curly brace}} is not a parameter
 ```
 
 Parameters also can have format specs `{name:formatspec}`.
