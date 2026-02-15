@@ -302,7 +302,7 @@ abstract class YamlToAndroidStringsTask : DefaultTask() {
 
         val flatYaml = flattenYamlMap(yamlContent)
 
-        val completedYaml = autoCompleteTranslations(flatYaml, paramCatalog)
+        val completedYaml = if (fallbackToDefault) autoCompleteTranslations(flatYaml, paramCatalog) else flatYaml
 
         mapToStringXml(completedYaml, resources, paramCatalog, onError = { error ->
             errors.add("\n$error\n    File: $yamlFile\n")
