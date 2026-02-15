@@ -3,8 +3,13 @@ package net.canvoki.gradle
 import kotlin.io.path.createTempFile
 import kotlin.io.path.writeText
 import kotlin.test.Test
-import kotlin.test.assertEquals
+import net.canvoki.test.assertEquals
 import kotlin.test.assertFailsWith
+import org.w3c.dom.Document
+import javax.xml.parsers.DocumentBuilderFactory
+import javax.xml.transform.TransformerFactory
+import javax.xml.transform.dom.DOMSource
+import javax.xml.transform.stream.StreamResult
 
 class YamlToAndroidStringsTaskTest {
     @Test
@@ -225,7 +230,7 @@ class YamlToAndroidStringsTaskTest {
 
         val result = parameterOrderFromYaml(yamlFile.toFile())
 
-        val resultProcessed = result.mapValues { (key, value) -> value.paramList }
+        val resultProcessed = result.mapValues { (_, value) -> value.paramList }
 
         assertEquals(expected, resultProcessed)
     }
@@ -363,5 +368,136 @@ class FlattenYamlMapTest {
         val input = emptyMap<Any, Any>()
         val expected = emptyMap<String, String>()
         assertEquals(expected, flattenYamlMap(input))
+    }
+}
+
+class MapToStringXmlTest {
+
+    private fun createResourcesElement(): Pair<Document, org.w3c.dom.Element> {
+        val docBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder()
+        val doc = docBuilder.newDocument()
+        val resources = doc.createElement("resources")
+        doc.appendChild(resources)
+        return doc to resources
+    }
+
+    private fun serializeElement(element: org.w3c.dom.Element): String {
+        val transformer = TransformerFactory.newInstance().newTransformer()
+        transformer.setOutputProperty(javax.xml.transform.OutputKeys.OMIT_XML_DECLARATION, "true")
+        val writer = java.io.StringWriter()
+        transformer.transform(DOMSource(element), StreamResult(writer))
+        return writer.toString().trim()
+    }
+
+    private fun assertXmlOutput(
+        inputMap: Map<String, String>,
+        paramCatalog: ParamCatalog = emptyMap(),
+        expectedXmlFragment: String,
+        expectedErrors: List<String> = emptyList(),
+    ) {
+        val (_, resources) = createResourcesElement()
+        val errors = mutableListOf<String>()
+
+        mapToStringXml(
+            map = inputMap,
+            resources = resources,
+            paramCatalog = paramCatalog,
+            onError = { errors.add(it) }
+        )
+        val header = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+        val actualXml = serializeElement(resources)
+        assertEquals(header + expectedXmlFragment.trim(), actualXml)
+        assertEquals(expectedErrors.toString(), errors.toString())
+    }
+
+    @Test
+    fun `converts simple key-value pair to string element`() {
+        val input = mapOf("hello" to "Hello World")
+        assertXmlOutput(
+            inputMap = input,
+            expectedXmlFragment =
+                """<resources>"""+
+                """<string name="hello">Hello World</string>""" +
+                """</resources>""",
+        )
+    }
+
+    @Test
+    fun `handles parameterized strings with catalog`() {
+        val input = mapOf("welcome" to "Hello {name}")
+        val catalog = mapOf(
+            "welcome" to Translatable(paramList = listOf("name"), defaultValue = "Hello {name}")
+        )
+        assertXmlOutput(
+            inputMap = input,
+            paramCatalog = catalog,
+            expectedXmlFragment =
+                """<resources>""" +
+                """<string name="welcome">Hello %1${'$'}s</string>""" +
+                """</resources>""",
+        )
+    }
+
+    @Test
+    fun `escapes special characters properly`() {
+        val input = mapOf("quote_test" to "He said \"Hello\"")
+        assertXmlOutput(
+            inputMap = input,
+            expectedXmlFragment =
+                """<resources>""" +
+                """<string name="quote_test">He said \"Hello\"</string>""" +
+                """</resources>""",
+        )
+    }
+
+    @Test
+    fun `handles multiple entries`() {
+        val input = mapOf(
+            "first" to "First string",
+            "second" to "Second string",
+        )
+        assertXmlOutput(
+            inputMap = input,
+            expectedXmlFragment =
+                """<resources>""" +
+                """<string name="first">First string</string>""" +
+                """<string name="second">Second string</string>""" +
+                """</resources>""",
+        )
+    }
+
+    @Test
+    fun `handles missing catalog entry gracefully`() {
+        val input = mapOf("simple" to "Simple string")
+        assertXmlOutput(
+            inputMap = input,
+            paramCatalog = emptyMap(),
+            expectedXmlFragment =
+                """<resources>""" +
+                """<string name="simple">Simple string</string>""" +
+                """</resources>""",
+        )
+    }
+
+    @Test
+    fun `reports parameter mismatch error`() {
+        val input = mapOf("test" to "Value with {missing_param}")
+        val catalog = mapOf(
+            "test" to Translatable(
+                paramList = listOf("different_param"),
+                defaultValue = "Default {different_param}",
+            )
+        )
+        assertXmlOutput(
+            inputMap = input,
+            paramCatalog = catalog,
+            expectedXmlFragment =
+                """<resources>""" +
+                """<string name="test">Value with {missing_param}</string>""" +
+                """</resources>""",
+            expectedErrors = listOf(
+                """Key "test" has a parameter "missing_param" not present in the original string."""
+            )
+        )
     }
 }

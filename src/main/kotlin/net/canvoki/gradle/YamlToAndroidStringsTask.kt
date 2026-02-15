@@ -48,6 +48,17 @@ fun escapeAndroidString(input: String): String {
     return escaped
 }
 
+fun validateResourceName(name: String): String {
+    if (!name.matches(Regex("^[a-z][a-z0-9_]*$"))) {
+        throw GradleException(
+            "Invalid resource name '$name'. Android resource names must start with a lowercase letter " +
+                "and contain only lowercase letters, digits, and underscores.",
+        )
+    }
+    return name
+}
+
+
 class MismatchedParamException(
     val paramName: String,
 ) : Exception(
@@ -132,6 +143,31 @@ fun parameterOrderFromYaml(yamlFile: File): ParamCatalog {
     }
     processKey(yamlContent)
     return result
+}
+
+fun mapToStringXml(
+    map: Map<String, String>,
+    resources: org.w3c.dom.Element,
+    paramCatalog: ParamCatalog,
+    onError: (String)->Unit,
+) {
+    val doc = resources.ownerDocument
+    map.forEach { (key, value) ->
+        val stringElem = doc.createElement("string")
+        val resourceName = key.lowercase(Locale.ROOT)
+        validateResourceName(resourceName)
+        stringElem.setAttribute("name", resourceName)
+        val paramList = paramCatalog[key]?.paramList ?: emptyList()
+        val valueWithPositionalParameters =
+            try {
+                parametersToXml(value, paramList)
+            } catch (e: MismatchedParamException) {
+                onError("""Key "$key" has a parameter "${e.paramName}" not present in the original string.""")
+                value // keep the old string and continue
+            }
+        stringElem.textContent = escapeAndroidString(valueWithPositionalParameters)
+        resources.appendChild(stringElem)
+    }
 }
 
 abstract class YamlToAndroidStringsTask : DefaultTask() {
@@ -228,42 +264,6 @@ abstract class YamlToAndroidStringsTask : DefaultTask() {
         paramCatalog: ParamCatalog,
         fallbackToDefault: Boolean = false,
     ) {
-        fun processYamlMap(
-            map: Map<*, *>,
-            prefix: String,
-            resources: org.w3c.dom.Element,
-            paramCatalog: ParamCatalog,
-        ) {
-            val doc = resources.ownerDocument
-            map.forEach { (key, value) ->
-                val fullKey = "$prefix$key"
-                when (value) {
-                    is Map<*, *> -> processYamlMap(value, "${fullKey}__", resources, paramCatalog)
-                    is String -> {
-                        val stringElem = doc.createElement("string")
-                        val resourceName = fullKey.lowercase(Locale.ROOT)
-                        validateResourceName(resourceName)
-                        stringElem.setAttribute("name", resourceName)
-                        val paramList = paramCatalog[fullKey]?.paramList ?: emptyList()
-                        val valueWithPositionalParameters =
-                            try {
-                                parametersToXml(value, paramList)
-                            } catch (e: MismatchedParamException) {
-                                errors.add(
-                                    """
-                                    Key "$fullKey" has a parameter "${e.paramName}" not present the original string.
-                                        File: $yamlFile
-                                    """.trimIndent(),
-                                )
-                                value // keep the old string and continue
-                            }
-                        stringElem.textContent = escapeAndroidString(valueWithPositionalParameters)
-                        resources.appendChild(stringElem)
-                    }
-                }
-            }
-        }
-
         val mapper = ObjectMapper(YAMLFactory())
         val yamlContent = mapper.readValue(yamlFile, Map::class.java) as Map<*, *>
 
@@ -276,7 +276,11 @@ abstract class YamlToAndroidStringsTask : DefaultTask() {
         val resources = doc.createElement("resources")
         doc.appendChild(resources)
 
-        processYamlMap(yamlContent, "", resources, paramCatalog)
+        val flatYaml = flattenYamlMap(yamlContent)
+
+        mapToStringXml(flatYaml, resources, paramCatalog, onError = { error ->
+            errors.add("\n$error\n    File: $yamlFile\n")
+        })
 
         val transformer =
             TransformerFactory.newInstance().newTransformer().apply {
@@ -288,15 +292,4 @@ abstract class YamlToAndroidStringsTask : DefaultTask() {
 
         transformer.transform(DOMSource(doc), StreamResult(xmlFile))
     }
-
-    private fun validateResourceName(name: String): String {
-        if (!name.matches(Regex("^[a-z][a-z0-9_]*$"))) {
-            throw GradleException(
-                "Invalid resource name '$name'. Android resource names must start with a lowercase letter " +
-                    "and contain only lowercase letters, digits, and underscores.",
-            )
-        }
-        return name
-    }
-
 }

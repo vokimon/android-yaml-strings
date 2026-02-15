@@ -24,6 +24,7 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     testImplementation(gradleTestKit())
     testImplementation("org.jetbrains.kotlin:kotlin-test:1.9.0")
+    testImplementation("io.github.java-diff-utils:java-diff-utils:4.12")
 }
 
 gradlePlugin {
