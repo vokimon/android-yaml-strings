@@ -35,3 +35,5 @@ build/
 # local/secret config
 .env
 
+# editors cache
+.*.sw?

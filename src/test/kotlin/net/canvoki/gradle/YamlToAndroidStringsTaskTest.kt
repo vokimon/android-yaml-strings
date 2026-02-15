@@ -324,3 +324,44 @@ class YamlToAndroidStringsTaskTest {
         )
     }
 }
+
+class FlattenYamlMapTest {
+
+    @Test
+    fun `single level kept it untouched`() {
+        val input = mapOf("key" to "value")
+        val expected = mapOf("key" to "value")
+        assertEquals(expected, flattenYamlMap(input))
+    }
+
+    @Test
+    fun `nested flattens with double underscore`() {
+        val input = mapOf(
+            "parent" to mapOf(
+                "child" to "nested_value"
+            )
+        )
+        val expected = mapOf("parent__child" to "nested_value")
+        assertEquals(expected, flattenYamlMap(input))
+    }
+
+    @Test
+    fun `multiple levels of nesting`() {
+        val input = mapOf(
+            "a" to mapOf(
+                "b" to mapOf(
+                    "c" to "deep_value"
+                )
+            )
+        )
+        val expected = mapOf("a__b__c" to "deep_value")
+        assertEquals(expected, flattenYamlMap(input))
+    }
+
+    @Test
+    fun `handles empty map`() {
+        val input = emptyMap<Any, Any>()
+        val expected = emptyMap<String, String>()
+        assertEquals(expected, flattenYamlMap(input))
+    }
+}

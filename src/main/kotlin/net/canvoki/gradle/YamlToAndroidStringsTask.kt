@@ -65,6 +65,23 @@ fun extractParams(template: String): ParamList {
         .toList()
 }
 
+fun flattenYamlMap(
+    map: Map<*, *>,
+    prefix: String = "",
+): Map<String, String> {
+    val result = mutableMapOf<String, String>()
+    map.toString()
+    prefix.toString()
+    map.forEach { (key, value) ->
+        val fullKey = "$prefix$key"
+        when (value) {
+            is Map<*, *> -> result.putAll(flattenYamlMap(value, "${fullKey}__"))
+            is String -> result[fullKey] = value
+        }
+    }
+    return result
+}
+
 fun parametersToXml(
     template: String,
     params: ParamList,
