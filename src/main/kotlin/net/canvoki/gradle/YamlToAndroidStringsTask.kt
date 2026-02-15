@@ -170,6 +170,30 @@ fun mapToStringXml(
     }
 }
 
+/**
+ * Completes a partial translation map with default values from ParamCatalog.
+ *
+ * @param currentMap The current language's translation map (may be incomplete)
+ * @param paramCatalog Catalog containing all keys with their default values
+ * @return A complete map with all keys from paramCatalog, using currentMap values where available,
+ *         and falling back to defaultValue from paramCatalog for missing keys.
+ */
+fun autoCompleteTranslations(
+    currentMap: Map<String, String>,
+    paramCatalog: ParamCatalog,
+): Map<String, String> {
+    val result = mutableMapOf<String, String>()
+    paramCatalog.forEach { (key, translatable) ->
+        result[key] = currentMap[key] ?: translatable.defaultValue
+    }
+    currentMap.forEach { (key, value) ->
+        if (key !in paramCatalog) {
+            result[key] = value
+        }
+    }
+    return result
+}
+
 abstract class YamlToAndroidStringsTask : DefaultTask() {
 
     @get:InputFiles
@@ -278,7 +302,9 @@ abstract class YamlToAndroidStringsTask : DefaultTask() {
 
         val flatYaml = flattenYamlMap(yamlContent)
 
-        mapToStringXml(flatYaml, resources, paramCatalog, onError = { error ->
+        val completedYaml = autoCompleteTranslations(flatYaml, paramCatalog)
+
+        mapToStringXml(completedYaml, resources, paramCatalog, onError = { error ->
             errors.add("\n$error\n    File: $yamlFile\n")
         })
 

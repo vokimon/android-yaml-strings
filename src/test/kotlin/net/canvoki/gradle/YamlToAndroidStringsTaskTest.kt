@@ -501,3 +501,70 @@ class MapToStringXmlTest {
         )
     }
 }
+
+class AutoCompleteTranslationsTest {
+
+    @Test
+    fun `returns complete catalog when current map is empty`() {
+        val currentMap = emptyMap<String, String>()
+        val paramCatalog = mapOf(
+            "key1" to Translatable(paramList = emptyList(), defaultValue = "default1"),
+        )
+
+        val result = autoCompleteTranslations(currentMap, paramCatalog)
+
+        val expected = mapOf(
+            "key1" to "default1",
+        )
+        assertEquals(expected, result)
+    }
+
+    @Test
+    fun `uses current map values when available`() {
+        val currentMap = mapOf(
+            "key1" to "translated1",
+        )
+        val paramCatalog = mapOf(
+            "key1" to Translatable(paramList = emptyList(), defaultValue = "default1"),
+        )
+
+        val result = autoCompleteTranslations(currentMap, paramCatalog)
+
+        val expected = mapOf(
+            "key1" to "translated1",
+        )
+        assertEquals(expected, result)
+    }
+
+    @Test
+    fun `handles partial completion`() {
+        val currentMap = mapOf(
+            "key2" to "translated2",
+        )
+        val paramCatalog = mapOf(
+            "key1" to Translatable(paramList = emptyList(), defaultValue = "default1"),
+            "key2" to Translatable(paramList = emptyList(), defaultValue = "default2"),
+        )
+
+        val result = autoCompleteTranslations(currentMap, paramCatalog)
+
+        val expected = mapOf(
+            "key1" to "default1",
+            "key2" to "translated2",
+        )
+        assertEquals(expected, result)
+    }
+
+    @Test
+    fun `returns empty map when paramCatalog is empty`() {
+        val currentMap = mapOf("extra" to "value")
+        val paramCatalog = emptyMap<String, Translatable>()
+
+        val result = autoCompleteTranslations(currentMap, paramCatalog)
+
+        val expected = mapOf(
+            "extra" to "value",
+        )
+        assertEquals(expected, result)
+    }
+}
