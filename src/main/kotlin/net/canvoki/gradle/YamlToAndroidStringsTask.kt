@@ -6,6 +6,7 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.provider.Property
+import org.gradle.api.provider.SetProperty
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputDirectory
 import org.gradle.api.tasks.InputFiles
@@ -123,6 +124,9 @@ abstract class YamlToAndroidStringsTask : DefaultTask() {
     @get:Input
     abstract val defaultLanguage: Property<String>
 
+    @get:Input
+    abstract val autoCompletedPartialLanguages: SetProperty<String>
+
     private val errors = mutableListOf<String>()
 
     @TaskAction
@@ -136,6 +140,7 @@ abstract class YamlToAndroidStringsTask : DefaultTask() {
             .toSortedSet()
 
         val defaultLang = defaultLanguage.get()
+        val autoCompletedLanguages = autoCompletedPartialLanguages.get()
 
         if (defaultLang !in languageCodes) {
             throw GradleException(
@@ -166,7 +171,7 @@ abstract class YamlToAndroidStringsTask : DefaultTask() {
             targetDir.mkdirs()
 
             val xmlFile = File(targetDir, "strings.xml")
-            convertYamlToAndroidXml(file, xmlFile, paramCatalog)
+            convertYamlToAndroidXml(file, xmlFile, paramCatalog, fallbackToDefault = langCode in autoCompletedLanguages )
         }
     }
 
@@ -198,6 +203,7 @@ abstract class YamlToAndroidStringsTask : DefaultTask() {
         yamlFile: File,
         xmlFile: File,
         paramCatalog: ParamCatalog,
+        fallbackToDefault: Boolean = false,
     ) {
         fun processYamlMap(
             map: Map<*, *>,

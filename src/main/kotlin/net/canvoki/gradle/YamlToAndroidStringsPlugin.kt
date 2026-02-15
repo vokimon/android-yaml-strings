@@ -13,6 +13,7 @@ import org.gradle.kotlin.dsl.register
  */
 open class YamlToAndroidStringsExtension {
     var defaultLanguage: String = "en"
+    var autoCompletedPartialLanguages: Set<String> = emptySet()
 }
 
 /**
@@ -68,6 +69,7 @@ class YamlToAndroidStringsPlugin : Plugin<Project> {
                 )
                 resDir.set(outputDir)
                 defaultLanguage.set(extension.defaultLanguage)
+                autoCompletedPartialLanguages.set(extension.autoCompletedPartialLanguages)
             }
 
             // Add the generated files as resources
