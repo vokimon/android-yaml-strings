@@ -25,7 +25,11 @@ import javax.xml.transform.dom.DOMSource
 import javax.xml.transform.stream.StreamResult
 
 typealias ParamList = List<String>
-typealias ParamCatalog = Map<String, ParamList>
+data class Translatable (
+    val defaultValue: String,
+    val paramList: ParamList,
+)
+typealias ParamCatalog = Map<String, Translatable>
 
 fun escapeAndroidString(input: String): String {
     var escaped =
@@ -88,7 +92,7 @@ fun parametersToXml(
 fun parameterOrderFromYaml(yamlFile: File): ParamCatalog {
     val mapper = ObjectMapper(YAMLFactory())
     val yamlContent = mapper.readValue(yamlFile, Map::class.java) as Map<*, *>
-    val result = mutableMapOf<String, ParamList>()
+    val result = mutableMapOf<String, Translatable>()
 
     fun processKey(
         content: Map<*, *>,
@@ -101,8 +105,10 @@ fun parameterOrderFromYaml(yamlFile: File): ParamCatalog {
                     processKey(value, prefix = "${fullKey}__")
                 }
                 is String -> {
-                    val parameters = extractParams(value)
-                    result[fullKey] = parameters
+                    result[fullKey] = Translatable(
+                        paramList = extractParams(value),
+                        defaultValue = value,
+                    )
                 }
             }
         }
@@ -221,7 +227,7 @@ abstract class YamlToAndroidStringsTask : DefaultTask() {
                         val resourceName = fullKey.lowercase(Locale.ROOT)
                         validateResourceName(resourceName)
                         stringElem.setAttribute("name", resourceName)
-                        val paramList = paramCatalog[fullKey] ?: emptyList()
+                        val paramList = paramCatalog[fullKey]?.paramList ?: emptyList()
                         val valueWithPositionalParameters =
                             try {
                                 parametersToXml(value, paramList)

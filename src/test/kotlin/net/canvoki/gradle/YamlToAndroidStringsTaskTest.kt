@@ -225,7 +225,9 @@ class YamlToAndroidStringsTaskTest {
 
         val result = parameterOrderFromYaml(yamlFile.toFile())
 
-        assertEquals(expected, result)
+        val resultProcessed = result.mapValues { (key, value) -> value.paramList }
+
+        assertEquals(expected, resultProcessed)
     }
 
     @Test
