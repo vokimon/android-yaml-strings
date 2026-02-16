@@ -57,7 +57,7 @@ plugins {
 }
 
 // Optional, just add it if 'en' is not you reference language
-yamlToAndroidStrings {
+yamlStrings {
     defaultLanguage = "en"
 }
 ```
@@ -69,7 +69,7 @@ plugins {
 }
 
 // Optional, just add it if 'en' is not you reference language
-yamlToAndroidStrings {
+yamlStrings {
     defaultLanguage.set("en")
 }
 ```
@@ -135,12 +135,32 @@ This lets your app enumerate available languages.
     Tip: Reserve a translation key like `language_name`
     to store the native name of each language for display purposes.
 
+### Incomplete translations
+
+Translations are often incomplete during development
+or community localization efforts.
+However, the Android linter treats missing translations as errors
+and provides no way to suppress them without
+also suppressing them for stable languages,
+where they can be still useful.
+
+To address this,
+the plugin provides the `yamlStrings.autoCompletedLanguages` option:
+a comma-separated list of language codes that are acknowledged as incomplete.
+For those languages, the plugin fills missing strings using the default language,
+satisfying the linter.
+
+The plugin also generates a string array resource
+named `incomplete_language_codes` so your application
+can choose to hide them or warn users to expect a partial translation.
+
+
 ## Implementation details
 
 The plugin generates intermediate in the build directory,
 
 - `<srcSet>/res/value-<lang>/string.xml` for each language
-- `<srcSet>/res/values/arrays_languages.xml` containing `supported_language_codes`
+- `<srcSet>/res/values/arrays_languages.xml` containing `supported_language_codes` and `imcomplete_language_codes`.
 
 These are automatically included in your APK/AAB via Android’s resource merging.
 
