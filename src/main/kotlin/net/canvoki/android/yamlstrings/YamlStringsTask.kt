@@ -233,7 +233,7 @@ abstract class YamlStringsTask : DefaultTask() {
 
         val outputResDir = resDir.get().asFile
 
-        writeArraysFile(outputResDir, languageCodes)
+        writeArraysFile(outputResDir, languageCodes, autoCompletedLanguages)
 
         val paramCatalog =
             parameterOrderFromYaml(
@@ -261,6 +261,7 @@ abstract class YamlStringsTask : DefaultTask() {
     private fun writeArraysFile(
         resDir: File,
         languageCodes: Set<String>,
+        incompleteCodes: Set<String>,
     ) {
         val arraysFile = File(resDir, "values/arrays_languages.xml")
         arraysFile.parentFile.mkdirs()
@@ -276,6 +277,12 @@ abstract class YamlStringsTask : DefaultTask() {
                     appendLine("        <item>$it</item>")
                 }
                 appendLine("    </string-array>")
+                appendLine("    <string-array name=\"incomplete_language_codes\">")
+                incompleteCodes.forEach {
+                    appendLine("        <item>$it</item>")
+                }
+                appendLine("    </string-array>")
+
                 appendLine("</resources>")
             },
         )
