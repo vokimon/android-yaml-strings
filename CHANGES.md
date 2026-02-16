@@ -1,6 +1,6 @@
 # Changelog
 
-## unreleased
+## android-yaml-strings 1.0.0 (2025-02-16)
 
 - 💥 Maven id: net.canvoki.gradle:android-yaml-strings -> net.canvoki:android-yaml-strings
 - 💥 Kotlin DSL scope: yamlToAndroidStrings -> yamlStrings
