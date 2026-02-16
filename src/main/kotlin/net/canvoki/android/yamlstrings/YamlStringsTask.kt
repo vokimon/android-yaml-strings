@@ -1,4 +1,4 @@
-package net.canvoki.gradle
+package net.canvoki.android.yamlstrings
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
@@ -194,7 +194,7 @@ fun autoCompleteTranslations(
     return result
 }
 
-abstract class YamlToAndroidStringsTask : DefaultTask() {
+abstract class YamlStringsTask : DefaultTask() {
 
     @get:InputFiles
     @get:PathSensitive(PathSensitivity.RELATIVE)

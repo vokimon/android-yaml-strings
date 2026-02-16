@@ -1,31 +1,51 @@
-package net.canvoki.gradle
+package net.canvoki.android.yamlstrings
 
 import com.android.build.api.dsl.ApplicationExtension
 import com.android.build.api.dsl.LibraryExtension
 import com.android.build.api.dsl.AndroidSourceSet
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.provider.Property
+import org.gradle.api.provider.SetProperty
 import org.gradle.kotlin.dsl.getByType
 import org.gradle.kotlin.dsl.register
 
 /**
  * Plugin configuration
  */
-open class YamlToAndroidStringsExtension {
-    var defaultLanguage: String = "en"
-    var autoCompletedPartialLanguages: Set<String> = emptySet()
+abstract class YamlStringsExtension {
+    abstract val defaultLanguage: Property<String>
+    abstract val autoCompletedPartialLanguages: SetProperty<String>
 }
 
 /**
  * Plugin that generates Android strings.xml from YAML in each sourceSet
  */
-class YamlToAndroidStringsPlugin : Plugin<Project> {
+class YamlStringsPlugin : Plugin<Project> {
 
     override fun apply(project: Project) {
 
+        val dslName = "yamlStrings"
         val extension = project.extensions.create(
-            "yamlStrings",
-            YamlToAndroidStringsExtension::class.java
+            dslName,
+            YamlStringsExtension::class.java,
+        )
+
+        extension.defaultLanguage.convention(
+            project.providers
+                .gradleProperty(dslName + ".defaultLanguage")
+                .orElse("en")
+        )
+
+        extension.autoCompletedPartialLanguages.convention(
+            project.providers
+                .gradleProperty(dslName + ".autoCompletedPartialLanguages")
+                .map { value ->
+                    value.split(",")
+                        .map { it.trim() }
+                        .filter { it.isNotEmpty() }
+                }
+                .orElse(emptyList())
         )
 
         project.plugins.withId("com.android.application") {
@@ -44,7 +64,7 @@ class YamlToAndroidStringsPlugin : Plugin<Project> {
     private fun configure(
         project: Project,
         sourceSets: Iterable<AndroidSourceSet>,
-        extension: YamlToAndroidStringsExtension
+        extension: YamlStringsExtension
     ) {
 
         sourceSets.forEach { sourceSet ->
@@ -60,7 +80,7 @@ class YamlToAndroidStringsPlugin : Plugin<Project> {
 
             val taskProvider = project.tasks.register(
                 "generate${sourceSetInfix}YamlToAndroidStrings",
-                YamlToAndroidStringsTask::class.java
+                YamlStringsTask::class.java
             ) {
                 yamlInputFiles.from(
                     project.fileTree(translationsDir) {

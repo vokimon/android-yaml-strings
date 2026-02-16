@@ -1,1 +1,8 @@
-rootProject.name = "android-yaml-strings"
+rootProject.name = providers.gradleProperty("ARTIFACT_ID").get()
+dependencyResolutionManagement {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
