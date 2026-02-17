@@ -176,6 +176,6 @@ These are automatically included in your APK/AAB via Android’s resource mergin
 # Publish to plugins.gradle.org
 export GRADLE_PUBLISH_KEY=xxxxxxxxxxxxxxxxxxxxxxxxx
 export GRADLE_PUBLISH_SECRET=zzzzzzzzzzzzzzzzzzzzzzzzzzzz
-./gradlew publish
+./gradlew publishPlugins
 ```
 

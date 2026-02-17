@@ -41,11 +41,12 @@ gradlePlugin {
             description = description
             website = githubUrl
             vcsUrl = githubUrl
-            tags = pluginTags
+            tags.set(pluginTags)
         }
     }
 }
 
+// Testing configuration
 tasks.withType<Test> {
     testLogging {
         events("failed", "skipped")
@@ -54,11 +55,5 @@ tasks.withType<Test> {
         showExceptions = true
         showCauses = true
         showStackTraces = true
-    }
-}
-
-publishing {
-    repositories {
-        mavenLocal() // For local testing ./gradlew publishToMavenLocal
     }
 }
