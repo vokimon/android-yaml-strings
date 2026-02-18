@@ -79,7 +79,7 @@ class YamlStringsPlugin : Plugin<Project> {
                 .dir("generated/translations/${sourceSet.name}/res")
 
             val taskProvider = project.tasks.register(
-                "generate${sourceSetInfix}YamlToAndroidStrings",
+                "generate${sourceSetInfix}StringsFromYaml",
                 YamlStringsTask::class.java
             ) {
                 yamlInputFiles.from(
