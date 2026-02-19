@@ -1,4 +1,4 @@
-package net.canvoki.gradle
+package net.canvoki.android.yamlstrings
 
 import kotlin.io.path.createTempFile
 import kotlin.io.path.writeText
